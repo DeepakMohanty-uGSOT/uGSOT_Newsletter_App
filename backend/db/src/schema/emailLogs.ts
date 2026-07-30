@@ -1,5 +1,4 @@
 import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { employeesTable } from "./employees";
 import { newslettersTable } from "./newsletters";
@@ -13,6 +12,13 @@ export const emailLogsTable = pgTable("email_logs", {
   errorMessage: text("error_message"),
 });
 
-export const insertEmailLogSchema = createInsertSchema(emailLogsTable).omit({ id: true, sentAt: true });
+// Hand-written rather than `createInsertSchema(emailLogsTable)` — see employees.ts
+// for why. Nothing currently imports this schema, so this is a drop-in equivalent.
+export const insertEmailLogSchema = z.object({
+  employeeEmail: z.string(),
+  newsletterId: z.number(),
+  deliveryStatus: z.string().optional(),
+  errorMessage: z.string().nullable().optional(),
+});
 export type InsertEmailLog = z.infer<typeof insertEmailLogSchema>;
 export type EmailLog = typeof emailLogsTable.$inferSelect;

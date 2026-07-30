@@ -1,5 +1,4 @@
 import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const newslettersTable = pgTable("newsletters", {
@@ -11,6 +10,14 @@ export const newslettersTable = pgTable("newsletters", {
   uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const insertNewsletterSchema = createInsertSchema(newslettersTable).omit({ id: true, uploadedAt: true });
+// Hand-written rather than `createInsertSchema(newslettersTable)` — see
+// employees.ts for why. Nothing currently imports this schema, so this is a
+// drop-in equivalent.
+export const insertNewsletterSchema = z.object({
+  title: z.string(),
+  topic: z.string(),
+  description: z.string().nullable().optional(),
+  pdfUrl: z.string(),
+});
 export type InsertNewsletter = z.infer<typeof insertNewsletterSchema>;
 export type Newsletter = typeof newslettersTable.$inferSelect;
