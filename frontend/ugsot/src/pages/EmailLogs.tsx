@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { useListEmailLogs, getListEmailLogsQueryKey, useListNewsletters, getListNewslettersQueryKey } from "@workspace/api-client-react";
+import {
+  useListEmailLogs,
+  getListEmailLogsQueryKey,
+  useListNewsletters,
+  getListNewslettersQueryKey,
+  type ListEmailLogsStatus,
+} from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,8 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { Link } from "wouter";
-import type { ListEmailLogsStatus } from "@workspace/api-client-react/generated";
-
 export default function EmailLogs() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<ListEmailLogsStatus | "all">("all");

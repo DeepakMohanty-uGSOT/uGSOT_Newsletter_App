@@ -43,8 +43,9 @@ export default function Login() {
         setLocation("/dashboard");
       },
       onError: (error) => {
-        if (error.error) {
-          form.setError("root", { message: error.error });
+        const message = error.data?.error;
+        if (message) {
+          form.setError("root", { message });
         } else {
           form.setError("root", { message: "Invalid credentials" });
         }
