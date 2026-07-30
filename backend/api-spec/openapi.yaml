@@ -91,6 +91,17 @@ paths:
                 $ref: "#/components/schemas/ApiError"
 
   /employees:
+    delete:
+      operationId: deleteAllEmployees
+      tags: [employees]
+      summary: Delete every employee
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkDeleteResult"
     get:
       operationId: listEmployees
       tags: [employees]
@@ -115,8 +126,92 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmployeeListResponse"
+    post:
+      operationId: createEmployee
+      tags: [employees]
+      summary: Create an employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+
+  /employees/export:
+    get:
+      operationId: exportEmployees
+      tags: [employees]
+      summary: Export employees as CSV
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /employees/bulk-delete:
+    post:
+      operationId: bulkDeleteEmployees
+      tags: [employees]
+      summary: Delete multiple employees
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkDeleteResult"
 
   /employees/{id}:
+    patch:
+      operationId: updateEmployee
+      tags: [employees]
+      summary: Update an employee
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeUpdateInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
     delete:
       operationId: deleteEmployee
       tags: [employees]
@@ -328,6 +423,32 @@ components:
         page:
           type: integer
         pageSize:
+          type: integer
+
+    EmployeeInput:
+      type: object
+      required: [employeeName, employeeEmail]
+      properties:
+        employeeName:
+          type: string
+        employeeEmail:
+          type: string
+
+    EmployeeUpdateInput:
+      type: object
+      properties:
+        employeeName:
+          type: string
+        employeeEmail:
+          type: string
+
+    BulkDeleteResult:
+      type: object
+      required: [message, deletedCount]
+      properties:
+        message:
+          type: string
+        deletedCount:
           type: integer
 
     EmployeeUploadResult:

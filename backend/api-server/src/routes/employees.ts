@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import { db, employeesTable } from "@workspace/db";
-import { eq, ilike, or, count, sql } from "drizzle-orm";
+import { eq, ilike, or, count, sql, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
@@ -10,6 +10,20 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+// Postgres foreign key violation error code. If deleting an employee fails
+// with this code, the DB schema hasn't picked up the `onDelete: "cascade"`
+// change on email_logs.employee_email yet — run `pnpm run push` in backend/db.
+function isForeignKeyViolation(err: unknown): boolean {
+  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "23503");
+}
+
+function dbErrorMessage(err: unknown, fallback: string): string {
+  if (isForeignKeyViolation(err)) {
+    return `${fallback}: these employees have related email log records and the database schema hasn't been updated to cascade-delete them yet. Run "pnpm run push" in backend/db, then try again.`;
+  }
+  return fallback;
 }
 
 router.get("/employees", requireAuth, async (req, res): Promise<void> => {
@@ -43,6 +57,132 @@ router.get("/employees", requireAuth, async (req, res): Promise<void> => {
   }
 });
 
+router.get("/employees/export", requireAuth, async (req, res): Promise<void> => {
+  try {
+    const { search } = req.query as Record<string, string>;
+    let query = db.select().from(employeesTable);
+    if (search) {
+      query = query.where(
+        or(
+          ilike(employeesTable.employeeName, `%${search}%`),
+          ilike(employeesTable.employeeEmail, `%${search}%`)
+        )
+      ) as typeof query;
+    }
+    const employees = await query.orderBy(employeesTable.employeeName);
+
+    const escapeCsv = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    const header = "Employee Name,Employee Email,Added\n";
+    const body = employees
+      .map((e) => `${escapeCsv(e.employeeName)},${escapeCsv(e.employeeEmail)},${new Date(e.createdAt).toISOString()}`)
+      .join("\n");
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="employees-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.send(header + body);
+  } catch (err) {
+    req.log.error({ err }, "Failed to export employees");
+    res.status(500).json({ error: "Failed to export employees" });
+  }
+});
+
+router.post("/employees", requireAuth, async (req, res): Promise<void> => {
+  const name = String(req.body?.employeeName ?? "").trim();
+  const email = String(req.body?.employeeEmail ?? "").trim().toLowerCase();
+
+  if (!name || !email) {
+    res.status(400).json({ error: "Employee name and email are required" });
+    return;
+  }
+  if (!isValidEmail(email)) {
+    res.status(400).json({ error: "Invalid email address" });
+    return;
+  }
+
+  try {
+    const [created] = await db
+      .insert(employeesTable)
+      .values({ employeeName: name, employeeEmail: email })
+      .returning();
+    res.status(201).json(created);
+  } catch (err) {
+    req.log.error({ err, name, email }, "Failed to create employee");
+    res.status(409).json({ error: "An employee with this email already exists" });
+  }
+});
+
+router.patch("/employees/:id", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+
+  const name = req.body?.employeeName !== undefined ? String(req.body.employeeName).trim() : undefined;
+  const email = req.body?.employeeEmail !== undefined ? String(req.body.employeeEmail).trim().toLowerCase() : undefined;
+
+  if (name === undefined && email === undefined) {
+    res.status(400).json({ error: "Nothing to update" });
+    return;
+  }
+  if (name !== undefined && !name) {
+    res.status(400).json({ error: "Employee name cannot be empty" });
+    return;
+  }
+  if (email !== undefined && !isValidEmail(email)) {
+    res.status(400).json({ error: "Invalid email address" });
+    return;
+  }
+
+  const updates: Partial<{ employeeName: string; employeeEmail: string }> = {};
+  if (name !== undefined) updates.employeeName = name;
+  if (email !== undefined) updates.employeeEmail = email;
+
+  try {
+    const [updated] = await db
+      .update(employeesTable)
+      .set(updates)
+      .where(eq(employeesTable.id, id))
+      .returning();
+    if (!updated) {
+      res.status(404).json({ error: "Employee not found" });
+      return;
+    }
+    res.json(updated);
+  } catch (err) {
+    req.log.error({ err, id }, "Failed to update employee");
+    res.status(409).json({ error: "An employee with this email already exists" });
+  }
+});
+
+router.post("/employees/bulk-delete", requireAuth, async (req, res): Promise<void> => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map((v: unknown) => Number(v)).filter((n: number) => !isNaN(n)) : [];
+
+  if (ids.length === 0) {
+    res.status(400).json({ error: "No employee IDs provided" });
+    return;
+  }
+
+  try {
+    const deleted = await db.delete(employeesTable).where(inArray(employeesTable.id, ids)).returning();
+    res.json({ message: "Employees deleted", deletedCount: deleted.length });
+  } catch (err) {
+    req.log.error({ err, ids }, "Failed to bulk delete employees");
+    res.status(500).json({ error: dbErrorMessage(err, "Failed to delete employees") });
+  }
+});
+
+router.delete("/employees", requireAuth, async (req, res): Promise<void> => {
+  try {
+    const deleted = await db.delete(employeesTable).returning();
+    res.json({ message: "All employees deleted", deletedCount: deleted.length });
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete all employees");
+    res.status(500).json({ error: dbErrorMessage(err, "Failed to delete all employees") });
+  }
+});
+
 router.delete("/employees/:id", requireAuth, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
@@ -51,12 +191,17 @@ router.delete("/employees/:id", requireAuth, async (req, res): Promise<void> => 
     return;
   }
 
-  const [deleted] = await db.delete(employeesTable).where(eq(employeesTable.id, id)).returning();
-  if (!deleted) {
-    res.status(404).json({ error: "Employee not found" });
-    return;
+  try {
+    const [deleted] = await db.delete(employeesTable).where(eq(employeesTable.id, id)).returning();
+    if (!deleted) {
+      res.status(404).json({ error: "Employee not found" });
+      return;
+    }
+    res.json({ message: "Employee deleted" });
+  } catch (err) {
+    req.log.error({ err, id }, "Failed to delete employee");
+    res.status(500).json({ error: dbErrorMessage(err, "Failed to delete employee") });
   }
-  res.json({ message: "Employee deleted" });
 });
 
 router.post("/employees/upload", requireAuth, upload.single("file"), async (req, res): Promise<void> => {
@@ -89,7 +234,7 @@ router.post("/employees/upload", requireAuth, upload.single("file"), async (req,
     req.log.info({}, "Cleared existing employees before upload");
   } catch (err) {
     req.log.error({ err }, "Failed to clear existing employees before upload");
-    res.status(500).json({ error: "Failed to clear existing employees before upload" });
+    res.status(500).json({ error: dbErrorMessage(err, "Failed to clear existing employees before upload") });
     return;
   }
 

@@ -6,7 +6,7 @@ import { newslettersTable } from "./newsletters";
 
 export const emailLogsTable = pgTable("email_logs", {
   id: serial("id").primaryKey(),
-  employeeEmail: text("employee_email").notNull().references(() => employeesTable.employeeEmail),
+  employeeEmail: text("employee_email").notNull().references(() => employeesTable.employeeEmail, { onDelete: "cascade" }),
   newsletterId: integer("newsletter_id").notNull().references(() => newslettersTable.id),
   deliveryStatus: text("delivery_status").notNull().default("pending"),
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
