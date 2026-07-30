@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
-import { logger } from "../lib/logger";
+import { signAuthToken, verifyAuthToken } from "../lib/authToken";
+import { AUTH_COOKIE_NAME, AUTH_COOKIE_MAX_AGE_MS, authCookieOptions } from "../lib/authCookie";
 
 const router: IRouter = Router();
 
@@ -37,27 +38,34 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  (req.session as unknown as Record<string, unknown>).adminEmail = email;
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    res.status(500).json({ error: "Server misconfigured: missing SESSION_SECRET" });
+    return;
+  }
+
+  const token = signAuthToken(email, secret, AUTH_COOKIE_MAX_AGE_MS);
+  res.cookie(AUTH_COOKIE_NAME, token, authCookieOptions());
   req.log.info({ email }, "Admin logged in");
   res.json({ email, loggedIn: true });
 });
 
 router.post("/auth/logout", (req, res): void => {
-  req.session.destroy((err) => {
-    if (err) {
-      logger.error({ err }, "Session destroy error");
-    }
-  });
+  const { maxAge: _maxAge, ...clearOptions } = authCookieOptions();
+  res.clearCookie(AUTH_COOKIE_NAME, clearOptions);
   res.json({ message: "Logged out" });
 });
 
 router.get("/auth/me", (req, res): void => {
-  const adminEmail = (req.session as unknown as Record<string, unknown>).adminEmail as string | undefined;
-  if (!adminEmail) {
+  const secret = process.env.SESSION_SECRET;
+  const token = (req.cookies as Record<string, string> | undefined)?.[AUTH_COOKIE_NAME];
+  const payload = secret ? verifyAuthToken(token, secret) : null;
+
+  if (!payload) {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  res.json({ email: adminEmail, loggedIn: true });
+  res.json({ email: payload.email, loggedIn: true });
 });
 
 export default router;
