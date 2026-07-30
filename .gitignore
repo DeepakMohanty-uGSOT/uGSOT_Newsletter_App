@@ -5,6 +5,8 @@ dist
 tmp
 out-tsc
 *.tsbuildinfo
+/api/*.js
+/api/*.js.map
 .expo
 .expo-shared
 
