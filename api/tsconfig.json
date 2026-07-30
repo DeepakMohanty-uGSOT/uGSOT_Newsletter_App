@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["**/*.ts", "../backend/api-server/src/**/*.ts"]
+  "include": ["**/*.ts"]
 }
