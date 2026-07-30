@@ -797,13 +797,21 @@ export const getSendNewsletterUrl = (id: number) => {
   return `/api/newsletters/${id}/send`;
 };
 
+export interface SendNewsletterInput {
+  /** If provided, sends only to these employee email addresses instead of all employees. */
+  emails?: string[];
+}
+
 export const sendNewsletter = async (
   id: number,
+  sendNewsletterInput?: SendNewsletterInput,
   options?: RequestInit,
 ): Promise<SendResult> => {
   return customFetch<SendResult>(getSendNewsletterUrl(id), {
     ...options,
     method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(sendNewsletterInput ?? {}),
   });
 };
 
@@ -814,14 +822,14 @@ export const getSendNewsletterMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof sendNewsletter>>,
     TError,
-    { id: number },
+    { id: number; data?: BodyType<SendNewsletterInput> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof sendNewsletter>>,
   TError,
-  { id: number },
+  { id: number; data?: BodyType<SendNewsletterInput> },
   TContext
 > => {
   const mutationKey = ["sendNewsletter"];
@@ -835,11 +843,11 @@ export const getSendNewsletterMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof sendNewsletter>>,
-    { id: number }
+    { id: number; data?: BodyType<SendNewsletterInput> }
   > = (props) => {
-    const { id } = props ?? {};
+    const { id, data } = props ?? {};
 
-    return sendNewsletter(id, requestOptions);
+    return sendNewsletter(id, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -848,11 +856,11 @@ export const getSendNewsletterMutationOptions = <
 export type SendNewsletterMutationResult = NonNullable<
   Awaited<ReturnType<typeof sendNewsletter>>
 >;
-
+export type SendNewsletterMutationBody = BodyType<SendNewsletterInput>;
 export type SendNewsletterMutationError = ErrorType<unknown>;
 
 /**
- * @summary Send newsletter to all employees
+ * @summary Send newsletter to all employees, or a specific list of recipients
  */
 export const useSendNewsletter = <
   TError = ErrorType<unknown>,
@@ -861,14 +869,14 @@ export const useSendNewsletter = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof sendNewsletter>>,
     TError,
-    { id: number },
+    { id: number; data?: BodyType<SendNewsletterInput> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof sendNewsletter>>,
   TError,
-  { id: number },
+  { id: number; data?: BodyType<SendNewsletterInput> },
   TContext
 > => {
   return useMutation(getSendNewsletterMutationOptions(options));

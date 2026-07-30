@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useListNewsletters, useDeleteNewsletter, useSendNewsletter, getListNewslettersQueryKey } from "@workspace/api-client-react";
+import {
+  useListNewsletters,
+  useDeleteNewsletter,
+  useSendNewsletter,
+  useListEmployees,
+  getListNewslettersQueryKey,
+  listEmailLogs,
+} from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +15,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Trash2, Send, Download, Plus, Loader2 } from "lucide-react";
+import { Trash2, Send, Download, Plus, Loader2, RotateCcw, Search, Users } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUploadNewsletter } from "@/hooks/use-upload";
+
+async function fetchAllFailedEmails(newsletterId: number): Promise<string[]> {
+  const emails = new Set<string>();
+  let page = 1;
+  // Loop until every page of failed logs for this newsletter has been collected.
+  while (true) {
+    const res = await listEmailLogs({ newsletterId, status: "failed", page, pageSize: 100 });
+    res.logs.forEach((log) => emails.add(log.employeeEmail));
+    if (res.logs.length === 0 || page * res.pageSize >= res.total) break;
+    page++;
+  }
+  return Array.from(emails);
+}
 
 export default function Newsletters() {
   const [page, setPage] = useState(1);
@@ -32,9 +54,19 @@ export default function Newsletters() {
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [newsletterToDelete, setNewsletterToDelete] = useState<number | null>(null);
-  
+
   const [sendConfirmOpen, setSendConfirmOpen] = useState(false);
   const [newsletterToSend, setNewsletterToSend] = useState<number | null>(null);
+  const [sendMode, setSendMode] = useState<"all" | "selected">("all");
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [employeePage, setEmployeePage] = useState(1);
+  const [isPreparingRetry, setIsPreparingRetry] = useState<number | null>(null);
+
+  const { data: employeesData, isLoading: employeesLoading } = useListEmployees(
+    { search: employeeSearch || undefined, page: employeePage, pageSize: 20 },
+    { query: { enabled: sendConfirmOpen && sendMode === "selected" } }
+  );
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadData, setUploadData] = useState({ title: "", topic: "", description: "" });
@@ -43,6 +75,32 @@ export default function Newsletters() {
   const confirmDelete = (id: number) => {
     setNewsletterToDelete(id);
     setDeleteConfirmOpen(true);
+  };
+
+  const resetSendDialog = () => {
+    setNewsletterToSend(null);
+    setSendMode("all");
+    setSelectedEmails(new Set());
+    setEmployeeSearch("");
+    setEmployeePage(1);
+  };
+
+  const toggleEmployee = (email: string, checked: boolean) => {
+    setSelectedEmails((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(email);
+      else next.delete(email);
+      return next;
+    });
+  };
+
+  const selectAllOnPage = () => {
+    if (!employeesData?.employees) return;
+    setSelectedEmails((prev) => {
+      const next = new Set(prev);
+      employeesData.employees.forEach((emp) => next.add(emp.employeeEmail));
+      return next;
+    });
   };
 
   const handleDelete = () => {
@@ -65,21 +123,45 @@ export default function Newsletters() {
   };
 
   const confirmSend = (id: number) => {
+    resetSendDialog();
     setNewsletterToSend(id);
     setSendConfirmOpen(true);
   };
 
+  const handleRetryFailed = async (id: number) => {
+    setIsPreparingRetry(id);
+    try {
+      const emails = await fetchAllFailedEmails(id);
+      if (emails.length === 0) {
+        toast({ title: "No failed recipients to retry" });
+        return;
+      }
+      resetSendDialog();
+      setNewsletterToSend(id);
+      setSendMode("selected");
+      setSelectedEmails(new Set(emails));
+      setSendConfirmOpen(true);
+    } catch {
+      toast({ variant: "destructive", title: "Failed to load failed recipients" });
+    } finally {
+      setIsPreparingRetry(null);
+    }
+  };
+
   const handleSend = () => {
     if (!newsletterToSend) return;
-    
-    sendMutation.mutate({ id: newsletterToSend }, {
+    if (sendMode === "selected" && selectedEmails.size === 0) return;
+
+    const emails = sendMode === "selected" ? Array.from(selectedEmails) : undefined;
+
+    sendMutation.mutate({ id: newsletterToSend, data: emails ? { emails } : undefined }, {
       onSuccess: (result) => {
-        toast({ 
+        toast({
           title: "Newsletter sending started",
           description: `Queued: ${result.total} (Sent: ${result.sent}, Failed: ${result.failed})`,
         });
         setSendConfirmOpen(false);
-        setNewsletterToSend(null);
+        resetSendDialog();
         queryClient.invalidateQueries({ queryKey: getListNewslettersQueryKey() });
       },
       onError: () => {
@@ -262,6 +344,22 @@ export default function Newsletters() {
                           )}
                           Send
                         </Button>
+                        {newsletter.totalFailed ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRetryFailed(newsletter.id)}
+                            disabled={isPreparingRetry === newsletter.id}
+                            title="Retry failed recipients"
+                          >
+                            {isPreparingRetry === newsletter.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <RotateCcw className="h-4 w-4 mr-2" />
+                            )}
+                            Retry Failed
+                          </Button>
+                        ) : null}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -332,24 +430,131 @@ export default function Newsletters() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={sendConfirmOpen} onOpenChange={setSendConfirmOpen}>
-        <DialogContent>
+      <Dialog
+        open={sendConfirmOpen}
+        onOpenChange={(open) => {
+          setSendConfirmOpen(open);
+          if (!open) resetSendDialog();
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Send Newsletter</DialogTitle>
             <DialogDescription>
-              Are you sure you want to send this newsletter to all employees? This may take some time depending on the number of employees.
+              Choose who should receive this newsletter.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+
+          <Tabs value={sendMode} onValueChange={(v) => setSendMode(v as "all" | "selected")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="all">All Employees</TabsTrigger>
+              <TabsTrigger value="selected">Select Employees</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="all" className="pt-4 text-sm text-muted-foreground">
+              This will send the newsletter to every employee currently in the system. This may take some time depending on the number of employees.
+            </TabsContent>
+
+            <TabsContent value="selected" className="pt-4 space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search employees by name or email..."
+                  className="pl-9"
+                  value={employeeSearch}
+                  onChange={(e) => {
+                    setEmployeeSearch(e.target.value);
+                    setEmployeePage(1);
+                  }}
+                />
+              </div>
+
+              <div className="border rounded-md max-h-56 overflow-y-auto divide-y">
+                {employeesLoading ? (
+                  <div className="p-4 text-sm text-muted-foreground">Loading employees...</div>
+                ) : !employeesData?.employees?.length ? (
+                  <div className="p-4 text-sm text-muted-foreground text-center">No employees found.</div>
+                ) : (
+                  employeesData.employees.map((emp) => (
+                    <label
+                      key={emp.id}
+                      className="flex items-center gap-3 px-3 py-2 hover:bg-accent cursor-pointer text-sm"
+                    >
+                      <Checkbox
+                        checked={selectedEmails.has(emp.employeeEmail)}
+                        onCheckedChange={(checked) => toggleEmployee(emp.employeeEmail, !!checked)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{emp.employeeName}</div>
+                        <div className="text-xs text-muted-foreground truncate">{emp.employeeEmail}</div>
+                      </div>
+                    </label>
+                  ))
+                )}
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <Users className="h-3.5 w-3.5" />
+                  {selectedEmails.size} selected
+                </span>
+                <div className="flex gap-1">
+                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={selectAllOnPage}>
+                    Select page
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2"
+                    onClick={() => setSelectedEmails(new Set())}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+
+              {employeesData && employeesData.total > employeesData.pageSize ? (
+                <div className="flex items-center justify-between">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={employeePage === 1}
+                    onClick={() => setEmployeePage((p) => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Page {employeePage} of {Math.ceil(employeesData.total / employeesData.pageSize)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={employeePage * employeesData.pageSize >= employeesData.total}
+                    onClick={() => setEmployeePage((p) => p + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              ) : null}
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="mt-2">
             <Button variant="outline" onClick={() => setSendConfirmOpen(false)}>Cancel</Button>
-            <Button onClick={handleSend} disabled={sendMutation.isPending}>
+            <Button
+              onClick={handleSend}
+              disabled={sendMutation.isPending || (sendMode === "selected" && selectedEmails.size === 0)}
+            >
               {sendMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Sending...
                 </>
+              ) : sendMode === "all" ? (
+                "Send to All"
               ) : (
-                "Confirm Send"
+                `Send to ${selectedEmails.size} Selected`
               )}
             </Button>
           </DialogFooter>

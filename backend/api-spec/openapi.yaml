@@ -292,13 +292,25 @@ paths:
     post:
       operationId: sendNewsletter
       tags: [newsletters]
-      summary: Send newsletter to all employees
+      summary: Send newsletter to all employees, or a specific list of recipients
       parameters:
         - name: id
           in: path
           required: true
           schema:
             type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                emails:
+                  type: array
+                  description: If provided, sends only to these employee email addresses instead of all employees.
+                  items:
+                    type: string
       responses:
         "200":
           description: Send result
