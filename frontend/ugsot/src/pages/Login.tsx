@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Mail, Loader2 } from "lucide-react";
+import { GraduationCap, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 const loginSchema = z.object({
@@ -55,7 +55,7 @@ export default function Login() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -66,20 +66,20 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <div className="w-full max-w-md">
-        <div className="flex justify-center mb-8 text-primary">
-          <div className="flex items-center gap-2 font-bold text-2xl">
-            <div className="h-10 w-10 bg-primary text-primary-foreground rounded-lg flex items-center justify-center">
-              <Mail className="h-6 w-6" />
+    <div className="min-h-screen w-full flex items-center justify-center bg-muted/40 p-4">
+      <div className="w-full max-w-sm">
+        <div className="flex justify-center mb-8">
+          <div className="flex items-center gap-2.5 font-semibold text-lg text-foreground">
+            <div className="h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+              <GraduationCap className="h-5 w-5" />
             </div>
-            <span>ugSOT Admin</span>
+            <span>upGrad SOT</span>
           </div>
         </div>
-        
-        <Card className="shadow-lg border-muted">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl">Sign In</CardTitle>
+
+        <Card className="border-border shadow-sm">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-xl">Sign in</CardTitle>
             <CardDescription>
               Enter your admin credentials to continue
             </CardDescription>
@@ -94,7 +94,7 @@ export default function Login() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="admin@ugsot.com" {...field} />
+                        <Input placeholder="admin@upgradsot.com" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -113,16 +113,16 @@ export default function Login() {
                     </FormItem>
                   )}
                 />
-                
+
                 {form.formState.errors.root && (
-                  <div className="text-sm font-medium text-destructive">
+                  <div className="text-sm font-medium text-destructive bg-destructive/10 rounded-md px-3 py-2">
                     {form.formState.errors.root.message}
                   </div>
                 )}
-                
-                <Button 
-                  type="submit" 
-                  className="w-full" 
+
+                <Button
+                  type="submit"
+                  className="w-full"
                   disabled={loginMutation.isPending}
                 >
                   {loginMutation.isPending ? (
@@ -138,6 +138,10 @@ export default function Login() {
             </Form>
           </CardContent>
         </Card>
+
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          Having trouble signing in? Contact your system administrator.
+        </p>
       </div>
     </div>
   );

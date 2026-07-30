@@ -238,7 +238,7 @@ export default function Newsletters() {
                     <TableCell>
                       <div className="text-sm">
                         {newsletter.totalSent ? (
-                          <span className="text-green-600 dark:text-green-400 font-medium">{newsletter.totalSent} Sent</span>
+                          <span className="text-foreground font-medium">{newsletter.totalSent} Sent</span>
                         ) : (
                           <span className="text-muted-foreground">Not sent yet</span>
                         )}

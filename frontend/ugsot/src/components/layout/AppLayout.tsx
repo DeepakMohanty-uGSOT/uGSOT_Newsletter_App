@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useGetMe, getGetMeQueryKey, useLogout } from "@workspace/api-client-react";
-import { LayoutDashboard, Users, Mail, Settings, LogOut, FileText, Menu, Loader2 } from "lucide-react";
+import { LayoutDashboard, Users, Mail, Settings, LogOut, FileText, GraduationCap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -44,10 +44,15 @@ function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="h-16 flex items-center justify-center border-b px-4">
-        <div className="flex items-center gap-2 font-semibold text-lg text-primary">
-          <Mail className="h-5 w-5" />
-          <span>ugSOT Admin</span>
+      <SidebarHeader className="h-16 flex items-center border-b px-4">
+        <div className="flex items-center gap-2.5 font-semibold text-base">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <GraduationCap className="h-4 w-4" />
+          </div>
+          <div className="flex flex-col leading-tight">
+            <span className="text-foreground">upGrad SOT</span>
+            <span className="text-[11px] font-medium text-muted-foreground tracking-wide">Admin Console</span>
+          </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -93,7 +98,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -110,8 +115,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 flex flex-col min-w-0">
           <header className="h-16 flex items-center border-b bg-background px-4 lg:px-8 gap-4 sticky top-0 z-10">
             <SidebarTrigger />
-            <div className="font-semibold text-sm text-muted-foreground ml-auto hidden sm:block">
-              {session.email}
+            <div className="ml-auto hidden sm:flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-foreground text-xs font-semibold uppercase">
+                {session.email?.[0] ?? "A"}
+              </div>
+              <span className="font-medium text-sm text-foreground/80">{session.email}</span>
             </div>
           </header>
           <div className="flex-1 p-4 lg:p-8 max-w-7xl mx-auto w-full">

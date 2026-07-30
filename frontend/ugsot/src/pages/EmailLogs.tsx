@@ -119,12 +119,15 @@ export default function EmailLogs() {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={
-                        log.deliveryStatus === 'sent' ? 'default' : 
-                        log.deliveryStatus === 'failed' ? 'destructive' : 'secondary'
-                      }>
-                        {log.deliveryStatus}
-                      </Badge>
+                      {log.deliveryStatus === 'failed' ? (
+                        <Badge variant="destructive">{log.deliveryStatus}</Badge>
+                      ) : log.deliveryStatus === 'sent' ? (
+                        <Badge className="bg-foreground text-background hover:bg-foreground">
+                          {log.deliveryStatus}
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">{log.deliveryStatus}</Badge>
+                      )}
                     </TableCell>
                     <TableCell>{format(new Date(log.sentAt), "MMM d, yyyy HH:mm")}</TableCell>
                     <TableCell className="text-sm text-destructive max-w-[200px] truncate">

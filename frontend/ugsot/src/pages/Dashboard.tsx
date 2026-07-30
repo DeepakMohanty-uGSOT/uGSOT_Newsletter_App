@@ -24,7 +24,7 @@ export default function Dashboard() {
             <Card key={i}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <Skeleton className="h-4 w-[100px]" />
-                <Skeleton className="h-4 w-4 rounded-full" />
+                <Skeleton className="h-9 w-9 rounded-lg" />
               </CardHeader>
               <CardContent>
                 <Skeleton className="h-8 w-[60px]" />
@@ -36,38 +36,46 @@ export default function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Employees</CardTitle>
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                <Users className="h-4 w-4" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalEmployees || 0}</div>
+              <div className="text-2xl font-bold tracking-tight">{stats?.totalEmployees || 0}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Newsletters</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Newsletters</CardTitle>
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                <FileText className="h-4 w-4" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalNewsletters || 0}</div>
+              <div className="text-2xl font-bold tracking-tight">{stats?.totalNewsletters || 0}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Emails Sent</CardTitle>
-              <Send className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Emails Sent</CardTitle>
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                <Send className="h-4 w-4" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalEmailsSent || 0}</div>
+              <div className="text-2xl font-bold tracking-tight">{stats?.totalEmailsSent || 0}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Delivery Rate</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Delivery Rate</CardTitle>
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                <BarChart3 className="h-4 w-4" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.deliveryRate.toFixed(1) || "0.0"}%</div>
+              <div className="text-2xl font-bold tracking-tight">{stats?.deliveryRate.toFixed(1) || "0.0"}%</div>
               {stats?.totalEmailsFailed ? (
                 <p className="text-xs text-muted-foreground mt-1 flex items-center">
                   <AlertCircle className="h-3 w-3 mr-1 text-destructive" />
@@ -116,7 +124,7 @@ export default function Dashboard() {
                     <div className="text-right">
                       <div className="text-sm font-medium">
                         {newsletter.totalSent ? (
-                          <span className="text-green-600 dark:text-green-400">{newsletter.totalSent} Sent</span>
+                          <span className="text-foreground font-medium">{newsletter.totalSent} Sent</span>
                         ) : (
                           <span className="text-muted-foreground">Not sent yet</span>
                         )}
