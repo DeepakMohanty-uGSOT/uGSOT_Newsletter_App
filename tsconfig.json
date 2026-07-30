@@ -7,6 +7,9 @@
       "path": "./backend/db"
     },
     {
+      "path": "./backend/api-zod"
+    },
+    {
       "path": "./frontend/api-client-react"
     }
   ]
