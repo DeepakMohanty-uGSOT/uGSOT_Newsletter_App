@@ -1,7 +1,7 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "typeRoots": ["../backend/api-server/node_modules/@types", "../node_modules/@types"]
   },
   "include": ["**/*.ts"]
 }
