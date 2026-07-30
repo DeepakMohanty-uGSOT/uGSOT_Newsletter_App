@@ -3,8 +3,8 @@ import multer from "multer";
 import { createClient } from "@supabase/supabase-js";
 import { db, newslettersTable, employeesTable, emailLogsTable } from "@workspace/db";
 import { eq, count, sql, desc } from "drizzle-orm";
-import { requireAuth } from "../middlewares/requireAuth";
-import { logger } from "../lib/logger";
+import { requireAuth } from "../middlewares/requireAuth.js";
+import { logger } from "../lib/logger.js";
 import { randomUUID } from "crypto";
 
 const router: IRouter = Router();

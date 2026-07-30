@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import { verifyAuthToken } from "../lib/authToken";
-import { AUTH_COOKIE_NAME } from "../lib/authCookie";
+import { verifyAuthToken } from "../lib/authToken.js";
+import { AUTH_COOKIE_NAME } from "../lib/authCookie.js";
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const secret = process.env.SESSION_SECRET;

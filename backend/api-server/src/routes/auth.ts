@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
-import { signAuthToken, verifyAuthToken } from "../lib/authToken";
-import { AUTH_COOKIE_NAME, AUTH_COOKIE_MAX_AGE_MS, authCookieOptions } from "../lib/authCookie";
+import { signAuthToken, verifyAuthToken } from "../lib/authToken.js";
+import { AUTH_COOKIE_NAME, AUTH_COOKIE_MAX_AGE_MS, authCookieOptions } from "../lib/authCookie.js";
 
 const router: IRouter = Router();
 

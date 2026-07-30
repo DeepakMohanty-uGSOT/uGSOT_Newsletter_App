@@ -7,6 +7,8 @@ out-tsc
 *.tsbuildinfo
 /api/*.js
 /api/*.js.map
+/backend/api-server/src/**/*.js
+/backend/api-server/src/**/*.js.map
 .expo
 .expo-shared
 
