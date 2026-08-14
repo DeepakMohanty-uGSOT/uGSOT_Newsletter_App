@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Newsletter } from "./newsletter";
+import type { EmailLog } from "./emailLog";
 
 export interface DashboardStats {
   totalEmployees: number;
@@ -14,4 +15,5 @@ export interface DashboardStats {
   totalEmailsFailed: number;
   deliveryRate: number;
   recentNewsletters: Newsletter[];
+  recentFailedDeliveries: EmailLog[];
 }

@@ -564,7 +564,7 @@ components:
 
     DashboardStats:
       type: object
-      required: [totalEmployees, totalNewsletters, totalEmailsSent, totalEmailsFailed, deliveryRate, recentNewsletters]
+      required: [totalEmployees, totalNewsletters, totalEmailsSent, totalEmailsFailed, deliveryRate, recentNewsletters, recentFailedDeliveries]
       properties:
         totalEmployees:
           type: integer
@@ -580,3 +580,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Newsletter"
+        recentFailedDeliveries:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmailLog"

@@ -110,6 +110,7 @@ export interface DashboardStats {
   totalEmailsFailed: number;
   deliveryRate: number;
   recentNewsletters: Newsletter[];
+  recentFailedDeliveries: EmailLog[];
 }
 
 export type ListEmployeesParams = {

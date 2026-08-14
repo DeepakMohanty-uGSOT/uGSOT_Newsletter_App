@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import {
   useListNewsletters,
@@ -71,6 +71,14 @@ export default function Newsletters() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadData, setUploadData] = useState({ title: "", topic: "", description: "" });
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+
+  // Support deep-linking straight into the "New Newsletter" dialog, e.g.
+  // from a dashboard quick action (/newsletters?new=1).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("new") === "1") {
+      setUploadOpen(true);
+    }
+  }, []);
 
   const confirmDelete = (id: number) => {
     setNewsletterToDelete(id);

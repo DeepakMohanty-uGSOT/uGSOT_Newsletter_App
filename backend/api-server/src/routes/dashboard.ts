@@ -13,6 +13,7 @@ router.get("/dashboard/stats", requireAuth, async (req, res): Promise<void> => {
       [{ count: totalEmailsSent }],
       [{ count: totalEmailsFailed }],
       recentNewsletters,
+      recentFailedDeliveries,
     ] = await Promise.all([
       db.select({ count: count() }).from(employeesTable),
       db.select({ count: count() }).from(newslettersTable),
@@ -34,6 +35,21 @@ router.get("/dashboard/stats", requireAuth, async (req, res): Promise<void> => {
         .groupBy(newslettersTable.id)
         .orderBy(desc(newslettersTable.uploadedAt))
         .limit(5),
+      db
+        .select({
+          id: emailLogsTable.id,
+          employeeEmail: emailLogsTable.employeeEmail,
+          newsletterId: emailLogsTable.newsletterId,
+          newsletterTitle: newslettersTable.title,
+          deliveryStatus: emailLogsTable.deliveryStatus,
+          sentAt: emailLogsTable.sentAt,
+          errorMessage: emailLogsTable.errorMessage,
+        })
+        .from(emailLogsTable)
+        .leftJoin(newslettersTable, eq(emailLogsTable.newsletterId, newslettersTable.id))
+        .where(eq(emailLogsTable.deliveryStatus, "failed"))
+        .orderBy(desc(emailLogsTable.sentAt))
+        .limit(5),
     ]);
 
     const sent = Number(totalEmailsSent);
@@ -48,6 +64,7 @@ router.get("/dashboard/stats", requireAuth, async (req, res): Promise<void> => {
       totalEmailsFailed: failed,
       deliveryRate,
       recentNewsletters,
+      recentFailedDeliveries,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get dashboard stats");

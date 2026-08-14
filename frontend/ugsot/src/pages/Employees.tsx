@@ -53,6 +53,14 @@ export default function Employees() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
+
+  // Support deep-linking straight into the "Add Employee" dialog, e.g. from
+  // a dashboard quick action (/employees?new=1).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("new") === "1") {
+      setAddOpen(true);
+    }
+  }, []);
   const [editForm, setEditForm] = useState<EmployeeInput>({ employeeName: "", employeeEmail: "" });
   const [editError, setEditError] = useState<string | null>(null);
 

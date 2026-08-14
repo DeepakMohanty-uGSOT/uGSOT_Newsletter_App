@@ -15,9 +15,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { Link } from "wouter";
+function getInitialStatusFilter(): ListEmailLogsStatus | "all" {
+  const status = new URLSearchParams(window.location.search).get("status");
+  return status === "sent" || status === "failed" || status === "pending" ? status : "all";
+}
+
 export default function EmailLogs() {
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<ListEmailLogsStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<ListEmailLogsStatus | "all">(getInitialStatusFilter);
   const [newsletterFilter, setNewsletterFilter] = useState<string>("all");
 
   const { data: newslettersData } = useListNewsletters(

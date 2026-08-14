@@ -192,4 +192,15 @@ export const GetDashboardStatsResponse = zod.object({
       totalFailed: zod.number().nullish(),
     }),
   ),
+  recentFailedDeliveries: zod.array(
+    zod.object({
+      id: zod.number(),
+      employeeEmail: zod.string(),
+      newsletterId: zod.number(),
+      newsletterTitle: zod.string().nullish(),
+      deliveryStatus: zod.enum(["sent", "failed", "pending"]),
+      sentAt: zod.coerce.date(),
+      errorMessage: zod.string().nullish(),
+    }),
+  ),
 });

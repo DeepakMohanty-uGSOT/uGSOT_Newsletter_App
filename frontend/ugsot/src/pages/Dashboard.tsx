@@ -1,8 +1,9 @@
 import { useGetDashboardStats, getGetDashboardStatsQueryKey } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, FileText, Send, AlertCircle, BarChart3 } from "lucide-react";
+import { Users, FileText, Send, AlertCircle, BarChart3, UserPlus, PlusCircle, Inbox, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 
@@ -11,10 +12,30 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Overview of the newsletter system.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild size="sm">
+            <Link href="/newsletters?new=1">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              New Newsletter
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/employees?new=1">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Employee
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/email-logs">
+              <Inbox className="h-4 w-4 mr-2" />
+              Email Logs
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -87,8 +108,8 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-full">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Recent Newsletters</CardTitle>
             <CardDescription>
@@ -135,6 +156,46 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Failed Deliveries</CardTitle>
+            <CardDescription>
+              Emails that need attention.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-14 w-full" />
+                ))}
+              </div>
+            ) : !stats?.recentFailedDeliveries?.length ? (
+              <div className="text-center py-8 text-muted-foreground flex flex-col items-center gap-2">
+                <CheckCircle2 className="h-6 w-6" />
+                <span className="text-sm">No recent failures</span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {stats.recentFailedDeliveries.map((log) => (
+                  <div key={log.id} className="border rounded-lg p-3">
+                    <div className="text-sm font-medium truncate">{log.employeeEmail}</div>
+                    <div className="text-xs text-muted-foreground truncate mt-0.5">
+                      {log.newsletterTitle || `Newsletter #${log.newsletterId}`}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {format(new Date(log.sentAt), "MMM d, yyyy HH:mm")}
+                    </div>
+                  </div>
+                ))}
+                <Button asChild variant="ghost" size="sm" className="w-full">
+                  <Link href="/email-logs?status=failed">View all failed deliveries</Link>
+                </Button>
               </div>
             )}
           </CardContent>
